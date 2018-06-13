@@ -14,31 +14,46 @@ from config import *
 ps = 1
 pid = '2'
 calg = '12345678'
+max_count = 10
 
 
-def login(username, password):
+def login(username, password, pattern):
     headers = {
         'Referer': 'http://10.10.43.3/',
         'Host': '10.10.43.3',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.189 Safari/537.36 Vivaldi/1.95.1077.55',
         'Upgrade-Insecure-Requests': '1'
     }
-    data = {
-        'DDDDD': username,
-        'upass': password,
-        'R1': '0',
-        'R2': '1',
-        'para': '00',
-        '0MKKey': '123456'
-    }
-    try:
-        response = requests.post('http://10.10.43.3/',
-                                 data=data, headers=headers, allow_redirects=False)
-    except Exception:
-        login(USERNAME, password)
+    if pattern == 0:
+        data = {
+            'DDDDD': username,
+            'upass': password,
+            'R1': '0',
+            'R2': '1',
+            'para': '00',
+            '0MKKey': '123456'
+        }
+        try:
+            response = requests.post('http://10.10.43.3/',
+                                     data=data, headers=headers, allow_redirects=False)
+        except Exception:
+            login(USERNAME, password, pattern)
+    else:
+        data = {
+            'DDDDD': username,
+            'upass': password,
+            '0MKKey': '%B5%C7%C2%BC%28Login%29',
+            'C2': 'on'
+        }
+        try:
+            response = requests.post('http://10.10.43.3/',
+                                     data=data, headers=headers, allow_redirects=False)
+        except Exception:
+            login(USERNAME, password, pattern)
 
 
 def connectWifi():
+    count = 0
     wifi = pywifi.PyWiFi()
     iface = wifi.interfaces()[0]
     iface.scan()
@@ -47,17 +62,28 @@ def connectWifi():
         os.system("netsh wlan disconnect")
         time.sleep(1)
     # connect(iface)
+    os.system('netsh wlan connect name=local.wlan.bjtu')
     while True:
-        os.system('netsh wlan connect name=local.wlan.bjtu')
-        status = os.system('ping -c 1 10.10.43.3')
-        if status == 1:
-            os.system('netsh wlan connect name=local.wlan.bjtu')
+        count += 1
+        if count < max_count:
+            status = os.system('ping -c 1 10.10.43.3')
+            if status == 1:
+                os.system('netsh wlan connect name=local.wlan.bjtu')
+            else:
+                break
         else:
-            break
+            os.system('netsh wlan connect name=web.wlan.bjtu')
+            status = os.system('ping -c 1 http://10.1.61.1/a70.htm')
+            if status == 1:
+                os.system('netsh wlan connect name=web.wlan.bjtu')
+            else:
+                break
     if iface.status() in [const.IFACE_CONNECTED]:
-        username = '16301                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 164'
-        password = getPassword()
-        login(USERNAME, password)
+        if count <= max_count:
+            password = getPassword()
+            login(USERNAME, password, 0)
+        else:
+            login(USERNAME, PASSWORD, 1)
 
 
 def connect(iface):
