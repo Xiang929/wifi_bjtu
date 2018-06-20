@@ -14,7 +14,7 @@ from config import *
 ps = 1
 pid = '2'
 calg = '12345678'
-max_count = 10
+max_count = 5
 
 
 def login(username, password, pattern):
@@ -46,14 +46,14 @@ def login(username, password, pattern):
             'C2': 'on'
         }
         try:
-            response = requests.post('http://10.10.43.3/',
+            response = requests.post('http://10.1.61.1/a70.htm',
                                      data=data, headers=headers, allow_redirects=False)
         except Exception:
             login(USERNAME, password, pattern)
 
 
 def connectWifi():
-    count = 0
+    count = 1
     wifi = pywifi.PyWiFi()
     iface = wifi.interfaces()[0]
     iface.scan()
@@ -73,7 +73,7 @@ def connectWifi():
                 break
         else:
             os.system('netsh wlan connect name=web.wlan.bjtu')
-            status = os.system('ping -c 1 http://10.1.61.1/a70.htm')
+            status = os.system('ping -c 1 10.1.61.1')
             if status == 1:
                 os.system('netsh wlan connect name=web.wlan.bjtu')
             else:
