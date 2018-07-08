@@ -60,21 +60,21 @@ def connectWifi():
     bsses = iface.scan_results()
     if bsses[0].ssid != 'local.wlan.bjtu':
         os.system("netsh wlan disconnect")
-        time.sleep(1)
+        
     # connect(iface)
     os.system('netsh wlan connect name=local.wlan.bjtu')
     while True:
         count += 1
         if count < max_count:
-            status = os.system('ping -c 1 10.10.43.3')
-            if status == 1:
+            response = requests.get('http://10.10.43.3')
+            if response.status_code != 200:
                 os.system('netsh wlan connect name=local.wlan.bjtu')
+                time.sleep(1)
             else:
                 break
         else:
-            os.system('netsh wlan connect name=web.wlan.bjtu')
-            status = os.system('ping -c 1 10.1.61.1')
-            if status == 1:
+            response = requests.get('http://10.1.61.1/a70.htm')
+            if response.status_code != 200:
                 os.system('netsh wlan connect name=web.wlan.bjtu')
             else:
                 break
