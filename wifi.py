@@ -2,7 +2,9 @@ import pywifi
 import requests
 import os
 import time
+import logging
 from requests.exceptions import RequestException
+from urllib3.exceptions import NewConnectionError, MaxRetryError
 from pywifi import const
 from pywifi import Profile
 from pywifi import const
@@ -10,19 +12,30 @@ from hashlib import md5
 from bs4 import BeautifulSoup
 from config import *
 
-
 ps = 1
 pid = '2'
 calg = '12345678'
-max_count = 5
+max_count = 10
+logging.basicConfig(
+    level=logging.DEBUG,
+    filename='wifi.log',
+    datefmt='%Y/%m/%d %H:%M:%S',
+    format=
+    '%(asctime)s - %(name)s - %(levelname)s - %(lineno)d - %(module)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 
 def login(username, password, pattern):
     headers = {
-        'Referer': 'http://10.10.43.3/',
-        'Host': '10.10.43.3',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.189 Safari/537.36 Vivaldi/1.95.1077.55',
-        'Upgrade-Insecure-Requests': '1'
+        'Referer':
+        'http://10.10.43.3/',
+        'Host':
+        '10.10.43.3',
+        'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.189 Safari/537.36 Vivaldi/1.95.1077.55',
+        'Upgrade-Insecure-Requests':
+        '1'
     }
     if pattern == 0:
         data = {
@@ -34,10 +47,19 @@ def login(username, password, pattern):
             '0MKKey': '123456'
         }
         try:
-            response = requests.post('http://10.10.43.3/',
-                                     data=data, headers=headers, allow_redirects=False)
-        except Exception:
-            login(USERNAME, password, pattern)
+            response = requests.post(
+                'http://10.10.43.3/',
+                data=data,
+                headers=headers,
+                allow_redirects=False)
+            if response.status_code == 200:
+                print('success')
+        except RequestException or NewConnectionError:
+            time.sleep(3)
+            return login(USERNAME, password, pattern)
+        except MaxRetryError:
+            time.sleep(3)
+            return login(USERNAME, password, pattern)
     else:
         data = {
             'DDDDD': username,
@@ -46,9 +68,18 @@ def login(username, password, pattern):
             'C2': 'on'
         }
         try:
-            response = requests.post('http://10.1.61.1/a70.htm',
-                                     data=data, headers=headers, allow_redirects=False)
-        except Exception:
+            response = requests.post(
+                'http://10.1.61.1/a70.htm',
+                data=data,
+                headers=headers,
+                allow_redirects=False)
+            if response.status_code == 200:
+                print('success')
+        except RequestException or NewConnectionError:
+            time.sleep(3)
+            login(USERNAME, password, pattern)
+        except MaxRetryError:
+            time.sleep(3)
             login(USERNAME, password, pattern)
 
 
@@ -60,25 +91,30 @@ def connectWifi():
     bsses = iface.scan_results()
     if bsses[0].ssid != 'local.wlan.bjtu':
         os.system("netsh wlan disconnect")
-        
+
     # connect(iface)
     os.system('netsh wlan connect name=local.wlan.bjtu')
     while True:
+        time.sleep(3)
         count += 1
         if count < max_count:
             response = requests.get('http://10.10.43.3')
             if response.status_code != 200:
+                os.system("netsh wlan disconnect")
                 os.system('netsh wlan connect name=local.wlan.bjtu')
-                time.sleep(1)
             else:
                 break
         else:
             response = requests.get('http://10.1.61.1/a70.htm')
             if response.status_code != 200:
+                os.system("netsh wlan disconnect")
                 os.system('netsh wlan connect name=web.wlan.bjtu')
+
             else:
                 break
-    if iface.status() in [const.IFACE_CONNECTED]:
+    if iface.status() in [const.IFACE_CONNECTED, const.IFACE_CONNECTING]:
+        print('连接次数:', count)
+        time.sleep(2)
         if count <= max_count:
             password = getPassword()
             login(USERNAME, password, 0)
