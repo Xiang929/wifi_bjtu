@@ -84,18 +84,19 @@ def login(username, password, pattern):
 
 
 def connectWifi():
-    count = 1
+    count = 0
     wifi = pywifi.PyWiFi()
     iface = wifi.interfaces()[0]
     iface.scan()
     bsses = iface.scan_results()
     if bsses[0].ssid != 'local.wlan.bjtu':
-        os.system("netsh wlan disconnect")
+        # os.system("netsh wlan disconnect")
+        iface.disconnect()
 
     # connect(iface)
     os.system('netsh wlan connect name=local.wlan.bjtu')
     while True:
-        time.sleep(3)
+        time.sleep(1)
         count += 1
         if count < max_count:
             response = requests.get('http://10.10.43.3')
